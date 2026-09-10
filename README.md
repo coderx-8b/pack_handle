@@ -27,7 +27,7 @@ Configure a different plugin declaration file before using the command:
 
 ```lua
 require("pack_handle").setup({
-  config_file = vim.fn.stdpath("config") .. "/lua/plugins/init.lua",
+  config_file = path_to_the_file_where_you_manages_plugins_via_vim_pack,
   -- Optional: customize where the Awesome Neovim cache is stored.
   cache_file = vim.fn.stdpath("data") .. "/pack_handle/awesome-neovim.json",
 })
