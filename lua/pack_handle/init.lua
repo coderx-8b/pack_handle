@@ -163,6 +163,32 @@ local function add_to_config(url)
 	return write_config(contents)
 end
 
+local function config_has_url(url)
+	local contents = config_contents()
+	if not contents then
+		return false
+	end
+	local double_quoted = ('"' .. escape_lua_string(url) .. '"'):gsub("(%W)", "%%%1")
+	local single_quoted = ("'" .. url:gsub("\\", "\\\\"):gsub("'", "\\'") .. "'"):gsub("(%W)", "%%%1")
+	local search_at = 1
+	while true do
+		local start_at = contents:find("vim.pack.add%s*%(%s*{", search_at)
+		if not start_at then
+			return false
+		end
+		local open_at = contents:find("{", start_at, true)
+		local close_at = matching_brace(contents, open_at)
+		if not close_at then
+			return false
+		end
+		local entries = contents:sub(open_at + 1, close_at - 1)
+		if entries:find(double_quoted) or entries:find(single_quoted) then
+			return true
+		end
+		search_at = close_at + 1
+	end
+end
+
 local function remove_from_config(url)
 	if not url then
 		return true
@@ -644,7 +670,7 @@ function M.refresh()
 	local width = vim.api.nvim_win_get_width(state.win)
 	local lines = { " MyPack ", string.rep("─", width) }
 	for _, plugin in ipairs(state.plugins) do
-		local status = plugin.active and "active" or "inactive"
+		local status = config_has_url(plugin.spec.src) and "enabled" or "disabled"
 		table.insert(
 			lines,
 			string.format("  %-24s %-9s %s", plugin.spec.name, status, truncate(plugin.spec.src, width - 38))
@@ -655,7 +681,7 @@ function M.refresh()
 	end
 	table.insert(lines, "")
 	table.insert(lines, string.rep("─", width))
-	table.insert(lines, "a add URL   s discover   d delete   r refresh list   q close")
+	table.insert(lines, "a add URL   s discover   e toggle   d delete   r refresh   q close")
 	vim.bo[state.buf].modifiable = true
 	vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
 	vim.api.nvim_buf_clear_namespace(state.buf, pack_handle_ns, 0, -1)
@@ -672,6 +698,7 @@ function M.refresh()
 	})
 	for index, plugin in ipairs(state.plugins) do
 		local line = index + 1
+		local enabled = config_has_url(plugin.spec.src)
 		-- vim.api.nvim_buf_add_highlight(state.buf, -1, "PackHandleName", line, 2, 26)
 		vim.api.nvim_buf_set_extmark(state.buf, pack_handle_ns, line, 2, {
 			hl_group = "PackHandleName",
@@ -689,7 +716,7 @@ function M.refresh()
 		-- )
 
 		vim.api.nvim_buf_set_extmark(state.buf, pack_handle_ns, line, 27, {
-			hl_group = plugin.active and "PackHandleStatus" or "PackHandleMeta",
+			hl_group = enabled and "PackHandleStatus" or "PackHandleMeta",
 			end_col = 36,
 		})
 	end
@@ -711,6 +738,35 @@ end
 local function selected_plugin()
 	local line = vim.api.nvim_win_get_cursor(state.win)[1]
 	return state.plugins[line - 2]
+end
+
+function M.toggle_selected()
+	local plugin = selected_plugin()
+	if not plugin then
+		notify("Move the cursor to a plugin first", vim.log.levels.WARN)
+		return
+	end
+	if config_has_url(plugin.spec.src) then
+		local ok, err = remove_from_config(plugin.spec.src)
+		if not ok then
+			notify("Could not disable " .. plugin.spec.name .. ": " .. err, vim.log.levels.ERROR)
+			return
+		end
+		notify("Disabled " .. plugin.spec.name .. " for the next Neovim startup; plugin files were kept")
+	else
+		local ok, err = add_to_config(plugin.spec.src)
+		if not ok then
+			notify("Could not enable " .. plugin.spec.name .. ": " .. err, vim.log.levels.ERROR)
+			return
+		end
+		local added, add_err = pcall(vim.pack.add, { plugin.spec.src }, { confirm = false })
+		if not added then
+			notify("Enabled in config, but could not activate " .. plugin.spec.name .. ": " .. add_err, vim.log.levels.ERROR)
+			return
+		end
+		notify("Enabled " .. plugin.spec.name)
+	end
+	M.refresh()
 end
 
 function M.delete_selected()
@@ -794,6 +850,7 @@ function M.open()
 		a = M.add,
 		s = M.open_catalog,
 		d = M.delete_selected,
+		e = M.toggle_selected,
 		r = M.refresh,
 		q = function()
 			vim.api.nvim_win_close(state.win, true)

@@ -6,8 +6,14 @@ Run `:MyPack` to open the package list.
 
 - `a` prompts for a Git URL, saves it to `~/.config/nvim/lua/plugins/init.lua`, then installs it.
 - `s` opens **Discover**, an Awesome Neovim catalog browser.
+- `e` toggles the selected plugin's enabled state while keeping its files installed.
 - `d` deletes the selected plugin and removes its URL entry from that `vim.pack.add({ ... })` table.
 - `r` refreshes the installed-plugin list; `q` closes the window.
+
+Enable/disable changes update the configured `vim.pack.add()` declaration. Disabling
+keeps the plugin on disk; restart Neovim for it to stop loading. Enabling activates
+it immediately when possible and also keeps it enabled on future starts. A plugin
+that has already run cannot be fully unloaded from the current Neovim session.
 
 ## Discover plugins
 
