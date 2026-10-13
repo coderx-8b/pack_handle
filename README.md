@@ -7,6 +7,7 @@ Run `:MyPack` to open the package list.
 - `a` prompts for a Git URL, saves it to `~/.config/nvim/lua/plugins/init.lua`, then installs it.
 - `s` opens **Discover**, an Awesome Neovim catalog browser.
 - `e` toggles the selected plugin's enabled state while keeping its files installed.
+- `u` opens Neovim's update confirmation for the selected plugin; `U` opens it for all installed plugins.
 - `d` deletes the selected plugin and removes its URL entry from that `vim.pack.add({ ... })` table.
 - `r` refreshes the installed-plugin list; `q` closes the window.
 

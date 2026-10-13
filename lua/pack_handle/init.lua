@@ -620,7 +620,7 @@ function M.refresh()
 	end
 	table.insert(lines, "")
 	table.insert(lines, string.rep("─", width))
-	table.insert(lines, "a add URL   s discover   e toggle   d delete   r refresh   q close")
+	table.insert(lines, "a add URL   s discover   u update   U update all   e toggle   d delete   r refresh   q close")
 	vim.bo[state.buf].modifiable = true
 	vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
 	vim.api.nvim_buf_clear_namespace(state.buf, pack_handle_ns, 0, -1)
@@ -730,6 +730,35 @@ function M.delete_selected()
 	M.refresh()
 end
 
+function M.update_selected()
+	local plugin = selected_plugin()
+	if not plugin then
+		notify("Move the cursor to a plugin first", vim.log.levels.WARN)
+		return
+	end
+	local ok, err = pcall(vim.pack.update, { plugin.spec.name })
+	if not ok then
+		notify("Could not update " .. plugin.spec.name .. ": " .. err, vim.log.levels.ERROR)
+	end
+	M.refresh()
+end
+
+function M.update_all()
+	local names = {}
+	for _, plugin in ipairs(plugin_rows()) do
+		table.insert(names, plugin.spec.name)
+	end
+	if #names == 0 then
+		notify("No installed plugins to update", vim.log.levels.WARN)
+		return
+	end
+	local ok, err = pcall(vim.pack.update, names)
+	if not ok then
+		notify("Could not update plugins: " .. err, vim.log.levels.ERROR)
+	end
+	M.refresh()
+end
+
 function M.add()
 	vim.ui.input({ prompt = "Plugin URL: " }, function(url)
 		if not url or url == "" then
@@ -788,6 +817,8 @@ function M.open()
 		s = M.open_catalog,
 		d = M.delete_selected,
 		e = M.toggle_selected,
+		u = M.update_selected,
+		U = M.update_all,
 		r = M.refresh,
 		q = function()
 			vim.api.nvim_win_close(state.win, true)
