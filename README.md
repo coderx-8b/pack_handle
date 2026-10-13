@@ -38,3 +38,20 @@ require("pack_handle").setup({
   cache_file = vim.fn.stdpath("data") .. "/pack_handle/awesome-neovim.json",
 })
 ```
+
+## Updating a local copy
+
+To install or update this checkout as a native Neovim package, run:
+
+```sh
+./install-local.sh
+```
+
+The script syncs the plugin to `stdpath("data")/site/pack/core/opt/pack_handle` (by default,
+`~/.local/share/nvim/site/pack/core/opt/pack_handle`). It uses `XDG_DATA_HOME` when set
+and requires `rsync`. Restart Neovim after syncing. To use a different plugin directory,
+pass it as the first argument:
+
+```sh
+./install-local.sh /path/to/nvim/site/pack/core/opt/pack_handle
+```
